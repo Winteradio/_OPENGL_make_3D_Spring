@@ -1,6 +1,5 @@
 #include "GL/freeglut.h"
 #include "physics.h"
-#include "particle.h"
 #include <math.h>
 
 Particle N = Particle();
@@ -14,78 +13,76 @@ float Physics::Distance(float V1[3]) { // 두 점 사이의 거리
 }
 
 
-void Physics::G_Force(int i) { // 중력 계산
-	N.particle[i][2][1] += G * mass;
+void Physics::G_Force(int i,float particle[8][3][3]) { // 중력 계산
+	particle[i][2][2] += G * mass;
 }
 
-void Physics::D_Force(int i) { // 항력 계산
+void Physics::D_Force(int i,float particle[8][3][3]) { // 항력 계산
 	for (int j = 0; j <= 2; j++) {
-		N.particle[i][2][j] += -Kd * N.particle[i][1][j];
+		particle[i][2][j] += -Kd * particle[i][1][j];
 	}
 }
 
-void Physics::S_Force() {// 탄성력 계산
+void Physics::S_Force(float particle[8][3][3]) {// 탄성력 계산
 	float X_Delta[3];
 	float V_Delta[3];
 	for (int i = 0; i < N.num - 1; i++) {
 		for (int j = i + 1; j < N.num; j++) {
 			for (int t = 0; t <= 2; t++) {
-				X_Delta[t] = N.particle[i][0][t] - N.particle[j][0][t];
-				V_Delta[t] = N.particle[i][1][t] - N.particle[j][1][t];
+				X_Delta[t] = particle[i][0][t] - particle[j][0][t];
+				V_Delta[t] = particle[i][1][t] - particle[j][1][t];
 			}
 			for (int t = 0; t <= 2; t++) {
-				N.particle[i][2][t] += -(Ks * (Distance(X_Delta) - L) + Kd * Dot(V_Delta, X_Delta) / Distance(X_Delta)) * X_Delta[t] / Distance(X_Delta);
-				N.particle[j][2][t] += -N.particle[i][2][t];
+				particle[i][2][t] += -(Ks * (Distance(X_Delta) - L) + Kd * Dot(V_Delta, X_Delta) / Distance(X_Delta)) * X_Delta[t] / Distance(X_Delta);
+				particle[j][2][t] += -particle[i][2][t];
 			}
 		}
 	}
 }
 
 
-void Physics::E_Velocity(int i) { // Euler Velocity 속도 계산
+void Physics::E_Velocity(int i,float particle[8][3][3]) { // Euler Velocity 속도 계산
 	for (int j = 0; j <= 2; j++) {
-		N.particle[i][1][j] += ((float)Time / 1000) * N.particle[i][2][j] / mass;
+		particle[i][1][j] += ((float)Time / 1000) * particle[i][2][j] / mass;
 	}
 }
 
-void Physics::Collision(int i) { // 충돌 계산
-	float X_Delta[3] = { 0,0,0 };
-	float N_Delta[3] = { 0,0,0 };
-	float V_Delta[3] = { 0,0,0 };
-	if (N.particle[i][0][1] <= 0) {
-		N_Delta[1] = 1;
+void Physics::Collision(int i,float particle[8][3][3]) { // 충돌 계산
+	if (particle[i][0][2] <= 0) {
 		for (int k = 0; k <= 2; k++) {
-			V_Delta[k] = N.particle[i][0][k];
-			if (k != 0) {
-				X_Delta[k] = N.particle[i][0][k];
+			V_Delta[k] = particle[i][1][k];
+			if (k == 2) {
+				X_Delta[k] = particle[i][0][k];
+			}
+			else {
+				X_Delta[k] = 0;
 			}
 		}
-	}
-	if (Dot(X_Delta, N_Delta) < e) {
-		if (Dot(V_Delta, N_Delta) < 0) {
-			for (int j = 0; j <= 2; j++) {
-					N.particle[i][1][j] = -Kr * N.particle[i][1][j];
+		if (Dot(X_Delta, N_Delta) < e) {
+			if (Dot(V_Delta, N_Delta) < 0) {
+				for (int j = 0; j <= 2; j++) {
+					particle[i][1][j] = -Kr * particle[i][1][j];
 				}
 			}
+		}
 	}
 }
 
-void Physics::Contact(int i) { // 접촉 계산
-	float X_Delta[3] = { 0,0,0 };
-	float N_Delta[3] = { 0,0,0 };
-	float V_Delta[3] = { 0,0,0 };
-	if (N.particle[i][0][1] <= 0) {
-		N_Delta[1] = 1;
+void Physics::Contact(int i,float particle[8][3][3]) { // 접촉 계산
+	if (particle[i][0][2] <= 0) {
 		for (int k = 0; k <= 2; k++) {
-			V_Delta[k] = N.particle[i][0][k];
-			if (k != 0) {
-				X_Delta[k] = N.particle[i][0][k];
+			V_Delta[k] = particle[i][1][k];
+			if (k == 2) {
+				X_Delta[k] = particle[i][0][k];
+			}
+			else {
+				X_Delta[k] = 0;
 			}
 		}
-	}
-	if (sqrt(pow(Dot(X_Delta, N_Delta), 2)) < e) {
-		if (fabs(Dot(V_Delta, N_Delta)) < e) {
-			N.particle[i][2][1] = 0;
+		if (sqrt(pow(Dot(X_Delta, N_Delta), 2)) < e) {
+			if (fabs(Dot(V_Delta, N_Delta)) < e) {
+				particle[i][2][2] = 0;
+			}
 		}
 	}
 }

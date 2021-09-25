@@ -6,11 +6,9 @@
 class Option {
 public:
 
-	void reset();
+	void reset(float particle[8][3][3]);
 
-	void start();
-
-	void drawBitmapText(char* str, float x, float y, float z);
+	void start(float particle[8][3][3]);
 };
 
 #endif // !__OPT_H__
